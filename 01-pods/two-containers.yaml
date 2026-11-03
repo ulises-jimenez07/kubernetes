@@ -1,0 +1,19 @@
+# A Pod with two containers.
+# Containers share the network namespace (same IP / localhost), so they MUST use different ports.
+# Change cont2 to 8082 to reproduce the "Address in use" error.
+#
+# kubectl apply -f two-containers.yaml
+# kubectl logs doscont -c cont2
+# kubectl exec -it doscont -c cont1 -- sh   ->  apk add curl && curl localhost:8083
+apiVersion: v1
+kind: Pod
+metadata:
+  name: doscont
+spec:
+  containers:
+    - name: cont1
+      image: python:3.6-alpine
+      command: ["sh", "-c", "echo cont1 > index.html && python -m http.server 8082"]
+    - name: cont2
+      image: python:3.6-alpine
+      command: ["sh", "-c", "echo cont2 > index.html && python -m http.server 8083"]

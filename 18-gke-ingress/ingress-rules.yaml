@@ -1,0 +1,37 @@
+# Modify Ingress rules on GKE.
+# Path routing for the 2048 app + the two sample apps (16-ingress/ingress-example.yaml
+# and 16-ingress/app-ingress2.yaml deployed into namespace game-2048 with the neg annotation).
+# Note: GKE Ingress does NOT support nginx's rewrite-target -> the app receives the full path.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: game-2048
+  name: ingress-2048
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+spec:
+  defaultBackend:
+    service:
+      name: service-2048
+      port:
+        number: 80
+  rules:
+  - http:
+      paths:
+      - path: /game
+        pathType: Prefix          # Prefix/Exact need GKE >= 1.21.3; older: ImplementationSpecific with "/game/*"
+        backend:
+          service:
+            name: service-2048
+            port:
+              number: 80
+  - host: app1.example.com        # host rule — test with: curl -H "Host: app1.example.com" http://<ADDRESS>/
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: service-2048
+            port:
+              number: 80

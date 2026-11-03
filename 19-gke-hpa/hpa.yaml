@@ -1,0 +1,62 @@
+# GKE: app + Service + HorizontalPodAutoscaler
+# Imperative equivalent:
+#   kubectl create deployment httpd --image=httpd
+#   kubectl set resources deployment httpd -c=httpd --requests=cpu=500m --limits=cpu=500m
+#   kubectl expose deployment httpd --port=80
+#   kubectl autoscale deployment httpd --cpu-percent=50 --min=1 --max=10
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpd
+  labels:
+    app: httpd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpd
+  template:
+    metadata:
+      labels:
+        app: httpd
+    spec:
+      containers:
+      - name: httpd
+        image: httpd
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 500m        # HPA % is measured against the REQUEST — required!
+          limits:
+            cpu: 500m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpd
+spec:
+  selector:
+    app: httpd
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: httpd
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: httpd
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50     # keep average CPU at ~50% of requests
